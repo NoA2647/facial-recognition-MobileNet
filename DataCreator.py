@@ -28,7 +28,6 @@ def collectFromStorage(sourcePath, destPath):
         newImg = face_extractor(oldImg)
         if newImg is not None:
             newImg = cv2.resize(newImg, (200, 200))
-            newImg = cv2.cvtColor(newImg, cv2.COLOR_BGR2GRAY)
             cv2.imwrite(f'{destPath}/face_{count}.jpg', newImg)
             count += 1
         i+=1
@@ -52,7 +51,6 @@ def collectFromWebcam(n=20, path='.', show=True):
             if face is not None:
                 count += 1
                 face = cv2.resize(face, (200, 200))
-                face = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
 
                 file_name_path = f'{path}/face_{count}.jpg'
 
