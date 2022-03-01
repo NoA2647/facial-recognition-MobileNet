@@ -22,12 +22,17 @@ def face_extractor(img):
 def collectFromStorage(sourcePath, destPath):
     images = os.listdir(sourcePath)
     count = 0
+    i=0
     for img in images:
-        oldImg = cv2.imread(img)
+        oldImg = cv2.imread(sourcePath+'/'+img)
         newImg = face_extractor(oldImg)
         if newImg is not None:
-            cv2.imwrite(destPath+f'/face_{count}', newImg)
+            newImg = cv2.resize(newImg, (200, 200))
+            newImg = cv2.cvtColor(newImg, cv2.COLOR_BGR2GRAY)
+            cv2.imwrite(f'{destPath}/face_{count}.jpg', newImg)
             count += 1
+        i+=1
+        print(f'{i}/{len(images)}')
     print(f"Collecting Samples Complete\n{count} images saved in {destPath}")
 
 
@@ -69,5 +74,5 @@ def collectFromWebcam(n=20, path='.', show=True):
 
     cap.release()
     cv2.destroyAllWindows()
-    print(f"Collecting Samples Complete\nimages saved in {path}")
+    print(f"Collecting Samples Complete\n{count} images saved in {path}")
 
