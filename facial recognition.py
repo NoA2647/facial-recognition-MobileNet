@@ -11,7 +11,7 @@ face_classifier = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_fro
 
 # insert name of class
 faces_dict = {"[0]": "amir ",
-              "[1]": "arshia", }
+              "[1]": "arshia"}
 
 
 def face_extractor(img):
@@ -106,7 +106,10 @@ def run():
                 lock = True
             cv2.imshow("prediction", original)
 
-        cv2.waitKey(1)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    cap.release()
 
 
 run()
