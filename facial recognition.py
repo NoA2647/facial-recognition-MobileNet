@@ -1,10 +1,17 @@
 import numpy as np
 import cv2
 from keras.models import load_model
+import pandas as pd
+import datetime
+import os
 
 classifier = load_model('facialRecognitionModel.h5')
 
 face_classifier = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+
+# insert name of class
+faces_dict = {"[0]": "amir ",
+              "[1]": "arshia", }
 
 
 def face_extractor(img):
@@ -14,10 +21,7 @@ def face_extractor(img):
     if faces is tuple():
         return None
 
-    for (x, y, w, h) in faces:
-        cropped_face = img[y: y + h, x: x + w]
-
-    return cropped_face
+    return faces
 
 
 def preprocess(image):
@@ -27,33 +31,58 @@ def preprocess(image):
     return image
 
 
-def draw_test(name, predict, im):
-    faces = "None"
+def show(faces, predict, original):
+    for i in range(len(faces)):
+        result = faces_dict[str(predict[i])]
+        x, y, w, h = faces[i]
+        cv2.rectangle(original, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        cv2.putText(original, result, (x + w + 6, y + h + 6), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 1)
 
-    # insert name of class
-    faces_dict = {"[0]": "amir ",
-                  "[1]": "arshia", }
-
-    if result is not None:
-        faces = faces_dict[str(predict)]
-    BLACK = [0, 0, 0]
-    expanded_image = cv2.copyMakeBorder(im, 80, 0, 0, 100, cv2.BORDER_CONSTANT, value=BLACK)
-    cv2.putText(expanded_image, faces, (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-    cv2.imshow(name, expanded_image)
+    cv2.imshow("prediction", original)
 
 
-cap = cv2.VideoCapture(0)
-while True:
-    ret, img1 = cap.read()
-    img = face_extractor(img1)
-    result = None
-    if img is not None:
-        img = preprocess(img)
-        # Get Prediction
-        x = classifier.predict(img, 1, verbose=0)
-        print(x)
-        result = np.argmax(x, axis=1)
+def writeLog(path, log):
+    if not os.path.isfile(path):
+        f = open(path, 'w')
+        f.close()
 
-    # Show image with predicted class
-    draw_test("Prediction", result, img1)
-    cv2.waitKey(1)
+    try:
+        history = pd.read_csv(path, index_col=0)
+    except pd.errors.EmptyDataError as e:
+        history = pd.DataFrame(columns=['Name', 'Time'])
+    df = pd.DataFrame(log, columns=['Name', 'Time'])
+    history = pd.concat([history, df])
+    history.to_csv(path)
+
+
+def run():
+    cap = cv2.VideoCapture(0)
+    lock = True
+    log = []
+    while True:
+        ret, original = cap.read()
+        faces = face_extractor(original)
+        predict = []
+        if faces is not None:
+            for face in faces:
+                x, y, w, h = face
+                crop = original[y: y + h, x: x + w]
+                crop = preprocess(crop)
+                # Get Prediction
+                predict.append(np.argmax(classifier.predict(crop, 1, verbose=0), axis=1))
+                time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                log.append([faces_dict[str(predict[-1])], time])
+            if lock:
+                lock = False
+            show(faces, predict, original)
+
+        else:
+            if not lock:
+                writeLog('history.csv', log)
+                lock = True
+            cv2.imshow("prediction", original)
+
+        cv2.waitKey(1)
+
+
+run()
