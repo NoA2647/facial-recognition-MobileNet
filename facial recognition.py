@@ -49,8 +49,8 @@ def writeLog(path, log):
     try:
         history = pd.read_csv(path, index_col=0)
     except pd.errors.EmptyDataError as e:
-        history = pd.DataFrame(columns=['Name', 'Time'])
-    df = pd.DataFrame(log, columns=['Name', 'Time'])
+        history = pd.DataFrame(columns=['Name', 'StartTime', 'EndTime'])
+    df = pd.DataFrame(log, columns=['Name', 'StartTime', 'EndTime'])
     history = pd.concat([history, df])
     history.to_csv(path)
 
@@ -58,7 +58,8 @@ def writeLog(path, log):
 def run():
     cap = cv2.VideoCapture(0)
     lock = True
-    log = []
+    logs = []
+    lastlog = []
     while True:
         ret, original = cap.read()
         faces = face_extractor(original)
@@ -70,15 +71,38 @@ def run():
                 crop = preprocess(crop)
                 # Get Prediction
                 predict.append(np.argmax(classifier.predict(crop, 1, verbose=0), axis=1))
-                time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                log.append([faces_dict[str(predict[-1])], time])
+
+            # add new person or don't do anything if person already there
+            templog = lastlog.copy()
+            for pred in predict:
+                if lastlog.count(pred) == 0:
+                    startTime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    logs.append([faces_dict[str(pred)], startTime, None])
+                    lastlog.append(pred)
+                else:
+                    templog.remove(pred)
+
+            # remove person fom lastlog and save endtime in log
+            for temp in templog:
+                endTime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                lastlog.remove(temp)
+                for i in range(len(logs)):
+                    if logs[i][0] == temp:
+                        logs[i][2] = endTime
+
             if lock:
                 lock = False
             show(faces, predict, original)
 
         else:
             if not lock:
-                writeLog('history.csv', log)
+                endTime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                for i in range(len(logs)):
+                    if logs[i][2] is None:
+                        logs[i][2] = endTime
+                writeLog('history.csv', logs)
+                lastlog.clear()
+                logs.clear()
                 lock = True
             cv2.imshow("prediction", original)
 
