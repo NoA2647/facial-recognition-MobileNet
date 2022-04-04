@@ -1,4 +1,4 @@
-# facial-recognition-vgg16
+# facial-recognition-MobileNet
 
 detect and recognise multi faces in camera or webcam with trained model (vgg16) and save in history
 
